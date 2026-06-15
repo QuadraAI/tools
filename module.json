@@ -1,0 +1,18 @@
+{
+    "name": "tools",
+    "version": "v1.0.0",
+    "description": "Various reaction tools for Quadra modules to delete, move or copy files.",
+    "type": "reaction",
+    "arguments": [
+        {
+            "name": "--tool",
+            "values": "remove;move;copy"
+        },
+        {
+            "name": "--threshold",
+            "type": "int"
+        }
+    ],
+    "binary": "tools",
+    "runtime": null
+}
