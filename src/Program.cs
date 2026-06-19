@@ -1,8 +1,9 @@
 ﻿using System.Text.Json;
 using System.CommandLine;
 
-using Tools.Models;
 using Microsoft.VisualBasic.FileIO;
+
+using Tools.Models;
 
 namespace Tools;
 
