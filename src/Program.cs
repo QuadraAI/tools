@@ -2,12 +2,13 @@
 using System.CommandLine;
 
 using Tools.Models;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Tools;
 
 internal class Program
 {
-    private static void ExecuteTool(Tool tool, List<PredictionResult> predictionResults, double? threshold)
+    private static void ExecuteTool(Tool tool, List<PredictionResult> predictionResults, double? threshold, string? destination)
     {
         foreach (var result in predictionResults)
         {
@@ -19,7 +20,20 @@ internal class Program
             {
                 continue;
             }
-            // exec tool
+            switch (tool)
+            {
+                case Tool.Remove:
+                    FileSystem.DeleteFile(result.Path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    break;
+                case Tool.Move:
+                    File.Move(result.Path, destination!);
+                    break;
+                case Tool.Copy:
+                    File.Move(result.Path, destination!);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -37,12 +51,21 @@ internal class Program
         var predictionResults = result.GetValue<List<PredictionResult>>("prediction");
         var tool = result.GetValue<Tool>("--tool");
         var threshold = result.GetValue<double?>("--threshold");
+        var destination = result.GetValue<string?>("--destination");
 
         if (predictionResults is null)
         {
             throw new NullReferenceException(nameof(predictionResults));
         }
-        ExecuteTool(tool, predictionResults, threshold);
+        if (destination is null && tool is not Tool.Remove)
+        {
+            throw new InvalidOperationException("A destination should be provided to move/copy the prediction results with '--destination'");
+        }
+        if (threshold is null && predictionResults.Any(r => r.Score is not null))
+        {
+            throw new InvalidOperationException("A threshold shall be provided with '--threshold' when using an ML detection module.");
+        }
+        ExecuteTool(tool, predictionResults, threshold, destination);
         return;
     }
     private static int Main(string[] args)
@@ -65,12 +88,19 @@ internal class Program
             Recursive = true,
             Description = "Threshold that should be used to filter the scores. Only provide this option if the predictions contain a score.",
         };
+        var destinationOptions = new Option<string?>("--destination")
+        {
+            Arity = ArgumentArity.ExactlyOne,
+            Recursive = true,
+            Description = "The destination where the file should be moved/copied.",
+        };
 
         var rootCommand = new RootCommand("Tools module for Quadra.")
         {
             positionalOptions,
             toolOptions,
             thresholdOptions,
+            destinationOptions
         };
         rootCommand.SetAction(HandleAction);
         ParseResult parseResult = rootCommand.Parse(args);
