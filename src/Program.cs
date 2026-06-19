@@ -7,6 +7,22 @@ namespace Tools;
 
 internal class Program
 {
+    private static void ExecuteTool(Tool tool, List<PredictionResult> predictionResults, double? threshold)
+    {
+        foreach (var result in predictionResults)
+        {
+            if (result.Success is false)
+            {
+                continue;
+            }
+            if (threshold is not null && result.Score < threshold)
+            {
+                continue;
+            }
+            // exec tool
+        }
+    }
+
     private static void HandleAction(ParseResult result)
     {
         if (result.Errors.Count > 0)
@@ -18,29 +34,15 @@ internal class Program
             return;
         }
 
-        var prediction = result.GetValue<PredictionResult>("prediction");
-        double threshold = result.GetValue<double>("--threshold");
+        var predictionResults = result.GetValue<List<PredictionResult>>("prediction");
+        var tool = result.GetValue<Tool>("--tool");
+        var threshold = result.GetValue<double?>("--threshold");
 
-        if (prediction is null)
+        if (predictionResults is null)
         {
-            Console.Error.WriteLine("Argument 'prediction' cannot be null");
-            return;
+            throw new NullReferenceException(nameof(predictionResults));
         }
-
-        switch (result.GetValue<Tool>("--tool"))
-        {
-            case Tool.Remove:
-                Handlers.Remove(prediction, threshold);
-                break;
-            case Tool.Move:
-                Handlers.Move(prediction, threshold);
-                break;
-            case Tool.Copy:
-                Handlers.Copy(prediction, threshold);
-                break;
-            case Tool.None:
-                return;
-        }
+        ExecuteTool(tool, predictionResults, threshold);
         return;
     }
     private static int Main(string[] args)
@@ -57,7 +59,7 @@ internal class Program
             Recursive = true,
             Description = "Tool that will be used by this module.",
         };
-        var thresholdOptions = new Option<double>("--threshold")
+        var thresholdOptions = new Option<double?>("--threshold")
         {
             Arity = ArgumentArity.ExactlyOne,
             Recursive = true,
