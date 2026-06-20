@@ -49,20 +49,18 @@ jobs:
         shell: bash
         run: |
           NAME="${REPO_NAME}-${{ matrix.rid == 'linux-x64' && 'linux' || 'macos' }}"
-          mkdir "$NAME"
-          cp module.json "$NAME/"
-          cp "publish/$REPO_NAME" "$NAME/"
-          tar -czf "$NAME.tar.gz" "$NAME"
+          tar -czf "$NAME.tar.gz" \
+            -C . module.json \
+            -C publish "$REPO_NAME"
 
       - name: Package (zip)
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
           $name = "${env:REPO_NAME}-windows"
-          New-Item -ItemType Directory -Path $name | Out-Null
-          Copy-Item module.json "$name/module.json"
-          Copy-Item "publish/$env:REPO_NAME.exe" "$name/$env:REPO_NAME.exe"
-          Compress-Archive -Path $name -DestinationPath "$name.zip"
+          Compress-Archive `
+            -Path "module.json","publish/$env:REPO_NAME.exe" `
+            -DestinationPath "$name.zip"
 
       - name: Upload artifact (tar)
         if: matrix.archive == 'tar.gz'
