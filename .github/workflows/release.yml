@@ -45,14 +45,21 @@ jobs:
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
-          cd publish
-          tar -czf ../tools-${{ matrix.rid == 'linux-x64' && 'linux' || 'macos' }}.tar.gz tool*
+          NAME=tools-${{ matrix.rid == 'linux-x64' && 'linux' || 'macos' }}
+          mkdir "$NAME"
+          cp module.json "$NAME/"
+          cp publish/tool "$NAME/"
+          tar -czf "$NAME.tar.gz" "$NAME"
 
       - name: Package (zip)
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
-          Compress-Archive -Path publish/tool.exe -DestinationPath tools-windows.zip
+          $name = "tools-windows"
+          New-Item -ItemType Directory -Path $name | Out-Null
+          Copy-Item module.json "$name/module.json"
+          Copy-Item publish/tool.exe "$name/tool.exe"
+          Compress-Archive -Path $name -DestinationPath "$name.zip"
 
       - name: Upload artifact (tar)
         if: matrix.archive == 'tar.gz'
