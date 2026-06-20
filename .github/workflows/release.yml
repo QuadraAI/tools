@@ -1,0 +1,66 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: macos-latest
+            rid: osx-arm64
+            archive: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish AOT
+        run: >
+          dotnet publish src/Tools.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained
+          -o publish
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          cd publish
+          tar -czf ../tools-${{ matrix.rid == 'linux-x64' && 'linux' || 'macos' }}.tar.gz tool*
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path publish/tool.exe -DestinationPath tools-windows.zip
+
+      - name: Upload artifact (tar)
+        if: matrix.archive == 'tar.gz'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-${{ matrix.rid }}
+          path: tools-*.tar.gz
+
+      - name: Upload artifact (zip)
+        if: matrix.archive == 'zip'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-${{ matrix.rid }}
+          path: tools-windows.zip
